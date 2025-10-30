@@ -1,11 +1,6 @@
 import { useCallback } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import {
-  DndContext,
-  DragEndEvent,
-  DragStartEvent,
-  useDraggable,
-} from '@dnd-kit/core';
+import { DragEndEvent, DragStartEvent, useDraggable, useDndMonitor } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
 export interface ToolPaletteItem {
@@ -58,14 +53,17 @@ export function ToolPalette({
     [onItemDragEnd]
   );
 
+  useDndMonitor({
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+  });
+
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="space-y-3">
-        {items.map((item) => (
-          <PaletteDraggable key={item.id} item={item} />
-        ))}
-      </div>
-    </DndContext>
+    <div className="space-y-3">
+      {items.map((item) => (
+        <PaletteDraggable key={item.id} item={item} />
+      ))}
+    </div>
   );
 }
 
