@@ -1,10 +1,13 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Layer, Rect, Stage, Text, Group } from 'react-konva';
+import type Konva from 'konva';
 import { useDroppable, useDndMonitor } from '@dnd-kit/core';
 
 import type { ToolPaletteItem } from './ToolPalette';
 import { useCanvasState } from '../context';
 import type { CanvasElement } from '../context';
+import type { ElementConfig } from '../context/types';
+import { exportDesignToJSON, exportDesignToPDF } from '../utils';
 
 const GRID_SIZE = 16;
 const GRID_COLOR = 'rgba(148, 163, 184, 0.12)';
@@ -15,6 +18,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 
 export function Canvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const { elements, addElement } = useCanvasState();
 
@@ -95,6 +99,44 @@ export function Canvas() {
   const stageWidth = Math.max(dimensions.width, 1);
   const stageHeight = Math.max(dimensions.height, 1);
 
+  const handleExportJSON = useCallback(() => {
+    const exportableElements: ElementConfig[] = elements.map((element) => {
+      const normalisedType = element.type
+        .replace(/([a-z])([A-Z])/g, '$1-$2')
+        .toLowerCase() as ElementConfig['type'];
+
+      return {
+        id: element.id,
+        type: normalisedType,
+        capacity: element.capacity,
+        x: element.x,
+        y: element.y,
+        icon: '',
+        width: ELEMENT_SIZE,
+        height: ELEMENT_SIZE,
+      } satisfies ElementConfig;
+    });
+
+    const json = exportDesignToJSON(exportableElements);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'canvas-design.json';
+    anchor.click();
+
+    URL.revokeObjectURL(url);
+  }, [elements]);
+
+  const handleExportPDF = useCallback(async () => {
+    try {
+      await exportDesignToPDF(stageRef);
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
   return (
     <div
       ref={assignContainerRef}
@@ -103,9 +145,25 @@ export function Canvas() {
       }`}
       style={{ backgroundSize, backgroundImage }}
     >
-      <Stage width={stageWidth} height={stageHeight} className="cursor-crosshair">
+      <Stage ref={stageRef} width={stageWidth} height={stageHeight} className="cursor-crosshair">
         <Layer>{elements.map((element) => renderCanvasElement(element))}</Layer>
       </Stage>
+      <div className="pointer-events-none absolute right-4 top-4 flex gap-2">
+        <button
+          type="button"
+          onClick={handleExportJSON}
+          className="pointer-events-auto rounded-md bg-slate-800/80 px-3 py-1 text-xs font-medium text-slate-200 shadow hover:bg-slate-700/80"
+        >
+          Export JSON
+        </button>
+        <button
+          type="button"
+          onClick={handleExportPDF}
+          className="pointer-events-auto rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow hover:bg-indigo-500"
+        >
+          Export PDF
+        </button>
+      </div>
       {elements.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="rounded-full bg-slate-800/70 px-4 py-2 text-sm text-slate-300">
