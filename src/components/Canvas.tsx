@@ -5,6 +5,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import { useDroppable, useDndMonitor } from '@dnd-kit/core';
 
 import type { ToolPaletteItem } from './ToolPalette';
+import { ToolPalette } from './ToolPalette';
 import { DEFAULT_ELEMENT_SIZE, useCanvasState } from '../context';
 import type { CanvasElement } from '../context';
 import type { ElementConfig } from '../context/types';
@@ -14,7 +15,8 @@ import CUSTOM_ICON_REGISTRY from '../icons/registry';
 const GRID_SIZE = 16;
 const GRID_COLOR = 'rgba(192, 192, 192, 0.08)';
 const DROPZONE_ID = 'canvas-dropzone';
-const RESIZE_HANDLE_SIZE = 16;
+const RESIZE_HANDLE_SIZE = 20;
+const ROTATION_HANDLE_RADIUS = 12;
 const MIN_ELEMENT_SIZE = 48;
 const MAX_ELEMENT_SIZE = 240;
 const PRIMARY_BG = '#000000';
@@ -218,6 +220,8 @@ export function Canvas() {
   const clipboardRef = useRef<CanvasElement[]>([]);
   const selectionAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [isMobilePaletteOpen, setMobilePaletteOpen] = useState(false);
+  const [isMobileExportOpen, setMobileExportOpen] = useState(false);
 
   const { setNodeRef, isOver } = useDroppable({ id: DROPZONE_ID });
 
@@ -603,6 +607,73 @@ export function Canvas() {
     }
   }, []);
 
+  const handleDeleteSelection = useCallback(() => {
+    if (selectedElementIds.length === 0) {
+      return;
+    }
+
+    selectedElementIds.forEach((id) => removeElement(id));
+
+    if (rotatingElementId && selectedElementIds.includes(rotatingElementId)) {
+      setRotatingElementId(null);
+    }
+
+    setSelectedElementIds([]);
+  }, [removeElement, rotatingElementId, selectedElementIds]);
+
+  const handleDuplicateSelection = useCallback(() => {
+    if (selectedElementIds.length === 0) {
+      return;
+    }
+
+    const selected = elements.filter((item) => selectedElementIds.includes(item.id));
+    if (selected.length === 0) {
+      return;
+    }
+
+    const addedIds: string[] = [];
+
+    selected.forEach((template, index) => {
+      const width = template.width ?? template.size ?? DEFAULT_ELEMENT_SIZE;
+      const height = template.height ?? template.size ?? DEFAULT_ELEMENT_SIZE;
+      const padding = getVisualPadding(template.type, width, height);
+      const offset = 28 * (index + 1);
+
+      const { x: clampedX, y: clampedY } = clampPositionWithinStage({
+        x: template.x + offset,
+        y: template.y + offset,
+        width,
+        height,
+        rotationDegrees: template.rotation ?? 0,
+        padding,
+        stageWidth,
+        stageHeight,
+      });
+
+      const newId = `element-${Date.now()}-${Math.round(Math.random() * 1_000)}`;
+
+      addElement({
+        id: newId,
+        type: template.type,
+        capacity: template.capacity,
+        x: clampedX,
+        y: clampedY,
+        size: template.size ?? Math.max(width, height),
+        width,
+        height,
+        rotation: template.rotation ?? 0,
+        text: template.text,
+        imageKey: template.imageKey,
+      });
+
+      addedIds.push(newId);
+    });
+
+    if (addedIds.length > 0) {
+      setSelectedElementIds(addedIds);
+    }
+  }, [addElement, elements, selectedElementIds, stageHeight, stageWidth]);
+
   const handleElementSelect = useCallback(
     (id: string, event: KonvaEventObject<MouseEvent | TouchEvent>) => {
       const isMulti = event?.evt?.shiftKey ?? false;
@@ -830,11 +901,7 @@ export function Canvas() {
 
       if ((event.key === 'Delete' || event.key === 'Backspace') && selectedElementIds.length > 0) {
         event.preventDefault();
-        selectedElementIds.forEach((id) => removeElement(id));
-        if (rotatingElementId && selectedElementIds.includes(rotatingElementId)) {
-          setRotatingElementId(null);
-        }
-        setSelectedElementIds([]);
+        handleDeleteSelection();
         return;
       }
 
@@ -909,17 +976,21 @@ export function Canvas() {
   }, [
     addElement,
     elements,
-    removeElement,
+    handleDeleteSelection,
     rotatingElementId,
     selectedElementIds,
     stageHeight,
     stageWidth,
   ]);
 
+  const hasSelection = selectedElementIds.length > 0;
+  const handleMobilePaletteClose = useCallback(() => setMobilePaletteOpen(false), []);
+  const handleMobileExportClose = useCallback(() => setMobileExportOpen(false), []);
+
   return (
     <div
       ref={assignContainerRef}
-      className={`relative mx-auto h-[66vh] w-[75vw] max-w-full overflow-hidden rounded-2xl border transition ${
+      className={`relative mx-auto h-[60vh] w-full max-w-full overflow-hidden rounded-2xl border transition sm:h-[66vh] sm:w-[90vw] lg:w-[75vw] ${
         isOver ? 'outline outline-[3px] outline-offset-4' : ''
       }`}
       style={{
@@ -935,7 +1006,7 @@ export function Canvas() {
         ref={stageRef}
         width={stageWidth}
         height={stageHeight}
-        className="cursor-crosshair"
+        className="cursor-crosshair touch-manipulation"
         onMouseDown={handleStagePointerDown}
         onTouchStart={handleStagePointerDown}
         onMouseMove={handleStagePointerMove}
@@ -1003,7 +1074,7 @@ export function Canvas() {
           ) : null}
         </Layer>
       </Stage>
-      <div className="pointer-events-none absolute right-4 top-4 flex gap-2">
+      <div className="pointer-events-none absolute right-4 top-4 hidden gap-2 md:flex">
         <button
           type="button"
           onClick={handleExportJSON}
@@ -1022,8 +1093,128 @@ export function Canvas() {
       {elements.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="rounded-full border border-[#2c2c2c] bg-[#101010]/90 px-4 py-2 text-sm text-[#c0c0c0]">
-            Drag tools here to populate the canvas
+            Arrastra herramientas aqui para comenzar
           </span>
+        </div>
+      ) : null}
+      <div className="pointer-events-none absolute inset-x-4 bottom-4 flex justify-center md:hidden">
+        <div className="pointer-events-auto flex w-full max-w-xl flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#262626] bg-[#0b0b0b]/95 px-4 py-3 text-xs text-[#c0c0c0] shadow-[0_18px_38px_rgba(0,0,0,0.45)] backdrop-blur">
+          <button
+            type="button"
+            onClick={() => setMobilePaletteOpen(true)}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#2f2f2f] bg-[#111111] px-4 py-3 text-sm font-medium text-white transition hover:border-[#d4af37] hover:bg-[#181818]"
+          >
+            Abrir herramientas
+          </button>
+          <button
+            type="button"
+            onClick={handleDuplicateSelection}
+            disabled={!hasSelection}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
+              hasSelection
+                ? 'border-[#2f2f2f] bg-[#111111] text-white hover:border-[#d4af37] hover:bg-[#181818]'
+                : 'cursor-not-allowed border-[#1f1f1f] bg-[#0d0d0d] text-[#5f5f5f]'
+            }`}
+          >
+            Duplicar seleccion
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteSelection}
+            disabled={!hasSelection}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
+              hasSelection
+                ? 'border-[#4a1f1f] bg-[#1a0b0b] text-[#f87171] hover:border-[#d14343] hover:bg-[#2c1414]'
+                : 'cursor-not-allowed border-[#1f1f1f] bg-[#0d0d0d] text-[#5f5f5f]'
+            }`}
+          >
+            Eliminar seleccion
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileExportOpen(true)}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#d4af37] bg-[#1a1a1a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#d4af37] hover:text-black"
+          >
+            Exportar
+          </button>
+        </div>
+      </div>
+      <p className="pointer-events-none absolute bottom-2 left-0 right-0 px-6 text-center text-[10px] font-medium uppercase tracking-widest text-[#6f6f6f] md:hidden">
+        Mantén presionado para mover • Pellizca para hacer zoom con tu navegador
+      </p>
+      {isMobilePaletteOpen ? (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-black/60 backdrop-blur-sm md:hidden">
+          <button
+            type="button"
+            aria-label="Cerrar herramientas"
+            className="h-full w-full flex-1"
+            onClick={handleMobilePaletteClose}
+          />
+          <div className="max-h-[78vh] w-full rounded-t-3xl border border-[#2a2a2a] bg-[#050505]/95 p-5 shadow-[0_-20px_48px_rgba(0,0,0,0.6)]">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Herramientas</h3>
+                <p className="text-xs text-[#9a9a9a]">Arrastra un elemento y sueltalo en el lienzo.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleMobilePaletteClose}
+                className="rounded-full border border-[#2a2a2a] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#9a9a9a] transition hover:border-[#d4af37] hover:text-white"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="h-[60vh]">
+              <ToolPalette variant="mobile" onItemDragEnd={() => handleMobilePaletteClose()} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isMobileExportOpen ? (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-black/60 backdrop-blur-sm md:hidden">
+          <button
+            type="button"
+            aria-label="Cerrar exportaciones"
+            className="h-full w-full flex-1"
+            onClick={handleMobileExportClose}
+          />
+          <div className="w-full rounded-t-3xl border border-[#2a2a2a] bg-[#050505]/95 p-5 shadow-[0_-20px_48px_rgba(0,0,0,0.6)]">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Exportar diseno</h3>
+                <p className="text-xs text-[#9a9a9a]">Selecciona el formato para compartir o guardar.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleMobileExportClose}
+                className="rounded-full border border-[#2a2a2a] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#9a9a9a] transition hover:border-[#d4af37] hover:text-white"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  handleExportJSON();
+                  handleMobileExportClose();
+                }}
+                className="w-full rounded-2xl border border-[#2f2f2f] bg-[#111111] px-4 py-3 text-sm font-semibold text-white transition hover:border-[#d4af37] hover:bg-[#181818]"
+              >
+                Descargar JSON
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleExportPDF();
+                  handleMobileExportClose();
+                }}
+                className="w-full rounded-2xl border border-[#d4af37] bg-[#1a1a1a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#d4af37] hover:text-black"
+              >
+                Generar PDF
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -1174,7 +1365,7 @@ function CanvasElementNode({
     [element.id, onRotationStart, onSelect]
   );
 
-  const rotationHandleDistance = Math.max(halfWidth, halfHeight) + 28;
+  const rotationHandleDistance = Math.max(halfWidth, halfHeight) + 36;
   const rotationHandleAngle = rotationRadians - Math.PI / 2;
   const rotationHandleX = halfWidth + Math.cos(rotationHandleAngle) * rotationHandleDistance;
   const rotationHandleY = halfHeight + Math.sin(rotationHandleAngle) * rotationHandleDistance;
@@ -1241,7 +1432,7 @@ function CanvasElementNode({
           <Circle
             x={rotationHandleX}
             y={rotationHandleY}
-            radius={8}
+            radius={ROTATION_HANDLE_RADIUS}
             fill={HIGHLIGHT_GOLD}
             stroke={TEXT_SILVER}
             strokeWidth={2}
