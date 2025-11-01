@@ -15,7 +15,7 @@ function App() {
                 <h1 className="text-2xl font-semibold tracking-tight text-white">Drag n Drop Playground</h1>
                 <p className="text-sm text-[#9a9a9a]">Disena distribuciones en segundos y personaliza cada elemento.</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <a
                   href="#workspace"
                   className="rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#d4af37] transition hover:border-[#d4af37] hover:bg-[#181818]"
@@ -24,6 +24,9 @@ function App() {
                 </a>
                 <span className="hidden rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium text-[#8a8a8a] sm:inline-flex">
                   Shift arrastra para multiseleccion
+                </span>
+                <span className="inline-flex rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium text-[#8a8a8a] sm:hidden">
+                  Mantén presionado y arrastra para mover
                 </span>
               </div>
             </div>
@@ -38,7 +41,7 @@ function App() {
                       Arrastra iconos, ajusta tamanos, rota y guarda el diseno cuando quedes conforme.
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#9a9a9a]">
+                  <div className="hidden flex-wrap items-center gap-2 text-xs text-[#9a9a9a] sm:flex">
                     <span className="rounded-lg border border-[#2a2a2a] bg-[#111111] px-3 py-2">
                       Shift + clic para seleccion multiple
                     </span>
@@ -49,11 +52,22 @@ function App() {
                       Delete para eliminar
                     </span>
                   </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#9a9a9a] sm:hidden">
+                    <span className="rounded-lg border border-[#2a2a2a] bg-[#111111] px-3 py-2">
+                      Toca y arrastra un area vacia para multiseleccion
+                    </span>
+                    <span className="rounded-lg border border-[#2a2a2a] bg-[#111111] px-3 py-2">
+                      Usa la barra inferior para duplicar o eliminar
+                    </span>
+                    <span className="rounded-lg border border-[#2a2a2a] bg-[#111111] px-3 py-2">
+                      Doble toque en etiquetas para editar texto
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-                <aside className="lg:w-[280px] lg:flex-shrink-0">
-                  <ToolPalette className="lg:h-[66vh]" />
+                <aside className="hidden lg:block lg:w-[280px] lg:flex-shrink-0">
+                  <ToolPalette className="lg:h-[66vh]" variant="desktop" />
                 </aside>
                 <div className="flex-1">
                   <Canvas />

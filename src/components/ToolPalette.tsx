@@ -15,11 +15,14 @@ export interface ToolPaletteItem {
   };
 }
 
+export type ToolPaletteVariant = 'desktop' | 'mobile';
+
 export interface ToolPaletteProps {
   items?: ToolPaletteItem[];
   onItemDragStart?: (item: ToolPaletteItem, event: DragStartEvent) => void;
   onItemDragEnd?: (item: ToolPaletteItem, event: DragEndEvent) => void;
   className?: string;
+  variant?: ToolPaletteVariant;
 }
 
 const DEFAULT_TOOL_ITEMS: ToolPaletteItem[] = [
@@ -132,6 +135,7 @@ export function ToolPalette({
   onItemDragStart,
   onItemDragEnd,
   className,
+  variant = 'desktop',
 }: ToolPaletteProps) {
   const [query, setQuery] = useState('');
 
@@ -182,12 +186,28 @@ export function ToolPalette({
     });
   }, [items, normalizedQuery]);
 
+  const isMobileVariant = variant === 'mobile';
+
   const rootClassName = [
-    'flex h-full flex-col gap-4 rounded-2xl border border-[#242424] bg-[#0b0b0b]/85 p-4 shadow-[0_18px_32px_rgba(0,0,0,0.35)] backdrop-blur-sm',
+    isMobileVariant
+      ? 'flex h-full flex-col gap-5 rounded-3xl border border-[#2a2a2a] bg-[#050505]/90 p-5 shadow-[0_-18px_48px_rgba(0,0,0,0.55)] backdrop-blur'
+      : 'flex h-full flex-col gap-4 rounded-2xl border border-[#242424] bg-[#0b0b0b]/85 p-4 shadow-[0_18px_32px_rgba(0,0,0,0.35)] backdrop-blur-sm',
     className,
   ]
     .filter(Boolean)
     .join(' ');
+
+  const inputClassName = isMobileVariant
+    ? 'w-full rounded-2xl border border-[#2c2c2c] bg-[#101010] px-4 py-3 text-base text-[#e0e0e0] shadow-inner outline-none transition focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/40'
+    : 'w-full rounded-xl border border-[#2c2c2c] bg-[#101010] px-3 py-2 text-sm text-[#e0e0e0] shadow-inner outline-none transition focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/40';
+
+  const listContainerClassName = isMobileVariant
+    ? 'flex-1 overflow-hidden rounded-3xl border border-[#2a2a2a] bg-[#0d0d0d]/90'
+    : 'flex-1 overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#0d0d0d]/95';
+
+  const listContentClassName = isMobileVariant
+    ? 'h-full space-y-3.5 overflow-y-auto p-4 pr-3'
+    : 'h-full space-y-3 overflow-y-auto p-3 pr-2';
 
   return (
     <div className={rootClassName}>
@@ -202,11 +222,11 @@ export function ToolPalette({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Buscar elemento..."
-        className="w-full rounded-xl border border-[#2c2c2c] bg-[#101010] px-3 py-2 text-sm text-[#e0e0e0] shadow-inner outline-none transition focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/40"
+        className={inputClassName}
       />
 
-      <div className="flex-1 overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#0d0d0d]/95">
-        <div className="h-full space-y-3 overflow-y-auto p-3 pr-2">
+      <div className={listContainerClassName}>
+        <div className={listContentClassName}>
           {filteredItems.length > 0 ? (
             filteredItems.map((item) => <PaletteDraggable key={item.id} item={item} />)
           ) : (
@@ -246,7 +266,7 @@ function PaletteDraggable({ item }: PaletteDraggableProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex cursor-grab items-center gap-3 rounded-xl border border-[#2c2c2c] bg-[#111111] p-3 text-left text-[#c0c0c0] shadow-sm transition hover:border-[#d4af37] hover:bg-[#151515] hover:shadow-lg ${
+      className={`group flex cursor-grab touch-manipulation items-center gap-3 rounded-xl border border-[#2c2c2c] bg-[#111111] px-4 py-3 text-left text-[#c0c0c0] shadow-sm transition hover:border-[#d4af37] hover:bg-[#151515] hover:shadow-lg active:cursor-grabbing ${
         isDragging ? 'opacity-70 shadow-lg ring-2 ring-[#d4af37]/60' : ''
       }`}
       {...listeners}
