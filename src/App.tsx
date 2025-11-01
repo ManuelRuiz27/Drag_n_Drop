@@ -8,28 +8,28 @@ function App() {
   return (
     <CanvasStateProvider>
       <DndContext>
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-          <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="min-h-screen bg-black text-[#c0c0c0]">
+          <header className="border-b border-[#1f1f1f] bg-[#050505]/85 backdrop-blur">
+            <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-8 py-5">
               <h1 className="text-lg font-semibold tracking-tight text-white">Drag n Drop Playground</h1>
-              <span className="text-sm text-slate-400">Build interactive experiences faster</span>
+              <span className="text-sm text-[#9a9a9a]">Build interactive experiences faster</span>
             </div>
           </header>
-          <main className="mx-auto flex max-w-6xl flex-1 flex-col gap-10 px-6 py-10">
+          <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-12 px-8 py-12">
             <section className="space-y-4">
               <div className="flex items-baseline justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-white">Workspace</h2>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-[#9a9a9a]">
                     Drag components from the tool palette onto the canvas to begin prototyping your layout.
                   </p>
                 </div>
               </div>
-              <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+              <div className="grid gap-10 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]">
                 <aside className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Tool Palette</h3>
-                    <p className="text-xs text-slate-500">Grab an element to place it on the canvas.</p>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-[#d4af37]">Tool Palette</h3>
+                    <p className="text-xs text-[#8a8a8a]">Grab an element to place it on the canvas.</p>
                   </div>
                   <ToolPalette />
                 </aside>

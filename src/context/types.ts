@@ -3,7 +3,13 @@ type ElementType =
   | 'mesa-cuadrada'
   | 'pista-baile'
   | 'barra'
-  | 'salida';
+  | 'salida'
+  | 'limite'
+  | 'franja'
+  | 'etiqueta'
+  | 'banos'
+  | 'cabina-sonido'
+  | 'cocina';
 
 interface ElementConfig {
   id: string;
@@ -14,6 +20,9 @@ interface ElementConfig {
   icon: string;
   width: number;
   height: number;
+  rotation?: number;
+  text?: string;
+  imageKey?: string;
 }
 
 export type { ElementType, ElementConfig };
