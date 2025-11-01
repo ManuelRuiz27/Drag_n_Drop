@@ -157,6 +157,26 @@ function clampPositionWithinStage({
   };
 }
 
+type ElementBounds = ReturnType<typeof getElementBounds>;
+
+interface MultiSelectionElementSnapshot {
+  id: string;
+  startX: number;
+  startY: number;
+  width: number;
+  height: number;
+  rotation: number;
+  type: string;
+  padding: { x: number; y: number };
+  bounds: ElementBounds;
+}
+
+interface MultiSelectionDragState {
+  origin: { x: number; y: number };
+  elements: MultiSelectionElementSnapshot[];
+  deltaRange: { minX: number; maxX: number; minY: number; maxY: number };
+}
+
 function useCustomImage(src?: string) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
 
@@ -315,6 +335,232 @@ export function Canvas() {
 
   const stageWidth = Math.max(dimensions.width, 1);
   const stageHeight = Math.max(dimensions.height, 1);
+
+  const selectedElements = useMemo(
+    () => elements.filter((element) => selectedElementIds.includes(element.id)),
+    [elements, selectedElementIds]
+  );
+
+  const multiSelectionBounds = useMemo(() => {
+    if (selectedElements.length <= 1) {
+      return null;
+    }
+
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+
+    selectedElements.forEach((element) => {
+      const width = element.width ?? element.size ?? DEFAULT_ELEMENT_SIZE;
+      const height = element.height ?? element.size ?? DEFAULT_ELEMENT_SIZE;
+      const padding = getVisualPadding(element.type, width, height);
+      const bounds = getElementBounds({
+        x: element.x,
+        y: element.y,
+        width,
+        height,
+        rotationDegrees: element.rotation ?? 0,
+        padding,
+      });
+      minX = Math.min(minX, bounds.minX);
+      minY = Math.min(minY, bounds.minY);
+      maxX = Math.max(maxX, bounds.maxX);
+      maxY = Math.max(maxY, bounds.maxY);
+    });
+
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+      return null;
+    }
+
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(maxX - minX, 0),
+      height: Math.max(maxY - minY, 0),
+    };
+  }, [selectedElements]);
+
+  const multiSelectionDragStateRef = useRef<MultiSelectionDragState | null>(null);
+
+  const prepareMultiSelectionDragState = useCallback((): MultiSelectionDragState | null => {
+    if (!multiSelectionBounds) {
+      multiSelectionDragStateRef.current = null;
+      return null;
+    }
+
+    const snapshots: MultiSelectionElementSnapshot[] = selectedElements.map((element) => {
+      const width = element.width ?? element.size ?? DEFAULT_ELEMENT_SIZE;
+      const height = element.height ?? element.size ?? DEFAULT_ELEMENT_SIZE;
+      const rotation = element.rotation ?? 0;
+      const padding = getVisualPadding(element.type, width, height);
+      const bounds = getElementBounds({
+        x: element.x,
+        y: element.y,
+        width,
+        height,
+        rotationDegrees: rotation,
+        padding,
+      });
+
+      return {
+        id: element.id,
+        startX: element.x,
+        startY: element.y,
+        width,
+        height,
+        rotation,
+        type: element.type,
+        padding,
+        bounds,
+      };
+    });
+
+    if (snapshots.length <= 1) {
+      multiSelectionDragStateRef.current = null;
+      return null;
+    }
+
+    const deltaMinX = Math.max(...snapshots.map((item) => -item.bounds.minX));
+    const deltaMaxX = Math.min(...snapshots.map((item) => stageWidth - item.bounds.maxX));
+    const deltaMinY = Math.max(...snapshots.map((item) => -item.bounds.minY));
+    const deltaMaxY = Math.min(...snapshots.map((item) => stageHeight - item.bounds.maxY));
+
+    const range = {
+      minX: Number.isFinite(deltaMinX) ? deltaMinX : 0,
+      maxX: Number.isFinite(deltaMaxX) ? deltaMaxX : 0,
+      minY: Number.isFinite(deltaMinY) ? deltaMinY : 0,
+      maxY: Number.isFinite(deltaMaxY) ? deltaMaxY : 0,
+    };
+
+    if (range.minX > range.maxX) {
+      range.minX = 0;
+      range.maxX = 0;
+    }
+
+    if (range.minY > range.maxY) {
+      range.minY = 0;
+      range.maxY = 0;
+    }
+
+    const state: MultiSelectionDragState = {
+      origin: { x: multiSelectionBounds.x, y: multiSelectionBounds.y },
+      elements: snapshots,
+      deltaRange: range,
+    };
+
+    multiSelectionDragStateRef.current = state;
+    return state;
+  }, [multiSelectionBounds, selectedElements, stageHeight, stageWidth]);
+
+  useEffect(() => {
+    multiSelectionDragStateRef.current = null;
+  }, [selectedElementIds]);
+
+  const handleMultiSelectionDragStart = useCallback(
+    (event: KonvaEventObject<DragEvent>) => {
+      event.cancelBubble = true;
+      prepareMultiSelectionDragState();
+    },
+    [prepareMultiSelectionDragState]
+  );
+
+  const handleMultiSelectionDragMove = useCallback(
+    (event: KonvaEventObject<DragEvent>) => {
+      const state = multiSelectionDragStateRef.current ?? prepareMultiSelectionDragState();
+      if (!state) {
+        return;
+      }
+
+      event.cancelBubble = true;
+
+      const node = event.target;
+      const deltaX = node.x() - state.origin.x;
+      const deltaY = node.y() - state.origin.y;
+
+      const stage = stageRef.current;
+      if (!stage) {
+        return;
+      }
+
+      state.elements.forEach((item) => {
+        const target = stage.findOne(`#${item.id}`);
+        if (target) {
+          target.position({ x: item.startX + deltaX, y: item.startY + deltaY });
+        }
+      });
+
+      if (typeof stage.batchDraw === 'function') {
+        stage.batchDraw();
+      }
+    },
+    [prepareMultiSelectionDragState]
+  );
+
+  const handleMultiSelectionDragEnd = useCallback(
+    (event: KonvaEventObject<DragEvent>) => {
+      const state = multiSelectionDragStateRef.current ?? prepareMultiSelectionDragState();
+      if (!state) {
+        return;
+      }
+
+      event.cancelBubble = true;
+
+      const node = event.target;
+      const deltaX = node.x() - state.origin.x;
+      const deltaY = node.y() - state.origin.y;
+
+      state.elements.forEach((item) => {
+        const { x: clampedX, y: clampedY } = clampPositionWithinStage({
+          x: item.startX + deltaX,
+          y: item.startY + deltaY,
+          width: item.width,
+          height: item.height,
+          rotationDegrees: item.rotation,
+          padding: item.padding,
+          stageWidth,
+          stageHeight,
+        });
+
+        updateElement(item.id, { x: clampedX, y: clampedY });
+
+        const stage = stageRef.current;
+        if (stage) {
+          const target = stage.findOne(`#${item.id}`);
+          target?.position({ x: clampedX, y: clampedY });
+        }
+      });
+
+      const stage = stageRef.current;
+      if (stage && typeof stage.batchDraw === 'function') {
+        stage.batchDraw();
+      }
+
+      multiSelectionDragStateRef.current = null;
+    },
+    [prepareMultiSelectionDragState, stageHeight, stageWidth, updateElement]
+  );
+
+  const handleMultiSelectionDragBound = useCallback(
+    (pos: Konva.Vector2d) => {
+      const state = multiSelectionDragStateRef.current ?? prepareMultiSelectionDragState();
+      if (!state) {
+        return pos;
+      }
+
+      const rawDeltaX = pos.x - state.origin.x;
+      const rawDeltaY = pos.y - state.origin.y;
+
+      const clampedDeltaX = clamp(rawDeltaX, state.deltaRange.minX, state.deltaRange.maxX);
+      const clampedDeltaY = clamp(rawDeltaY, state.deltaRange.minY, state.deltaRange.maxY);
+
+      return {
+        x: state.origin.x + clampedDeltaX,
+        y: state.origin.y + clampedDeltaY,
+      };
+    },
+    [prepareMultiSelectionDragState]
+  );
 
   const handleExportJSON = useCallback(() => {
     const exportableElements: ElementConfig[] = elements.map((element) => {
@@ -726,6 +972,35 @@ export function Canvas() {
               onUpdate={updateElement}
             />
           ))}
+          {multiSelectionBounds && !selectionRect ? (
+            <Group
+              x={multiSelectionBounds.x}
+              y={multiSelectionBounds.y}
+              draggable
+              dragBoundFunc={handleMultiSelectionDragBound}
+              onDragStart={handleMultiSelectionDragStart}
+              onDragMove={handleMultiSelectionDragMove}
+              onDragEnd={handleMultiSelectionDragEnd}
+              onMouseDown={(event) => {
+                event.cancelBubble = true;
+              }}
+              onTouchStart={(event) => {
+                event.cancelBubble = true;
+              }}
+            >
+              <Rect
+                x={0}
+                y={0}
+                width={multiSelectionBounds.width}
+                height={multiSelectionBounds.height}
+                stroke={HIGHLIGHT_GOLD}
+                strokeWidth={2}
+                dash={[10, 8]}
+                fill="rgba(212, 175, 55, 0.08)"
+                cornerRadius={12}
+              />
+            </Group>
+          ) : null}
         </Layer>
       </Stage>
       <div className="pointer-events-none absolute right-4 top-4 flex gap-2">
@@ -925,6 +1200,7 @@ function CanvasElementNode({
 
   return (
     <Group
+      id={element.id}
       x={element.x}
       y={element.y}
       draggable
@@ -1002,7 +1278,12 @@ function renderElementIconByType(
   customImage?: HTMLImageElement | null
 ): JSX.Element {
   if (customImage) {
-    return <KonvaImage image={customImage} x={0} y={0} width={width} height={height} listening={false} />;
+    return (
+      <>
+        <Rect x={0} y={0} width={width} height={height} fill="rgba(0, 0, 0, 0)" listening />
+        <KonvaImage image={customImage} x={0} y={0} width={width} height={height} listening={false} />
+      </>
+    );
   }
 
   const type = element.type;
