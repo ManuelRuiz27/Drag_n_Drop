@@ -1,10 +1,50 @@
+import { useEffect, useState } from 'react';
 import { DndContext } from '@dnd-kit/core';
 
 import { Canvas } from './components/Canvas';
 import { ToolPalette } from './components/ToolPalette';
+import { SeatSelectionPage } from './components/seat-selection/SeatSelectionPage';
 import { CanvasStateProvider } from './context';
 
+type RouteKey = 'workspace' | 'seat-selection';
+
+function getRouteFromHash(): RouteKey {
+  if (typeof window === 'undefined') {
+    return 'workspace';
+  }
+
+  const hash = window.location.hash.replace('#', '');
+
+  if (hash === 'seat-selection') {
+    return 'seat-selection';
+  }
+
+  return 'workspace';
+}
+
 function App() {
+  const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash());
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setRoute(getRouteFromHash());
+    };
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  if (route === 'seat-selection') {
+    return <SeatSelectionPage />;
+  }
+
   return (
     <CanvasStateProvider>
       <DndContext>
@@ -21,6 +61,12 @@ function App() {
                   className="rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#d4af37] transition hover:border-[#d4af37] hover:bg-[#181818]"
                 >
                   Ir al lienzo
+                </a>
+                <a
+                  href="#seat-selection"
+                  className="rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#7dd3fc] transition hover:border-[#38bdf8] hover:bg-[#0f172a]"
+                >
+                  Probar boletera movil
                 </a>
                 <span className="hidden rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium text-[#8a8a8a] sm:inline-flex">
                   Shift arrastra para multiseleccion
