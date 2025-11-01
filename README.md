@@ -17,34 +17,49 @@ await persistDesignToApi(exportableElements, 'https://mi-api.com/event-layouts',
 
 El helper usa `exportDesignToJSON` para serializar los elementos y realiza la peticion con `fetch`, lanzando un error si el servidor responde con un estado distinto de 2xx. Ajusta los `headers` o el `method` segun lo que requiera tu API.
 
-## Endpoint de mapa de asientos de ejemplo
+## Endpoint de distribucion de mesas de ejemplo
 
-Se expone un endpoint de solo lectura para pruebas de la experiencia de boletera movil.
+Se expone un endpoint de solo lectura para probar la experiencia de seleccion de mesas con listas de espera.
 
-- **URL:** `GET /api/seat-map.json`
-- **Descripcion:** Devuelve la configuracion del mapa de asientos, incluyendo sala, pantalla, moneda y estado de cada asiento.
+- **URL:** `GET /api/table-map.json`
+- **Descripcion:** Devuelve la configuracion de mesas disponible para reservaciones, incluyendo capacidad, consumo minimo, disponibilidad por asiento y estado de las listas de espera.
 - **Respuesta 200 (fragmento abreviado):**
 
 ```json
 {
-  "auditorium": "Sala Premium",
-  "screen": "Pantalla IMAX",
+  "venue": "Terraza Central",
+  "zone": "Zona Lounge Premium",
   "currency": "MXN",
-  "basePrice": 95,
-  "rows": [
+  "coverCharge": 180,
+  "tables": [
     {
-      "label": "A",
+      "id": "T-01",
+      "name": "Mesa Aurora",
+      "capacity": 6,
+      "minimumSpend": 900,
       "seats": [
-        { "id": "A1", "status": "reserved" },
-        { "id": "A2", "status": "reserved" },
-        { "id": "A3", "status": "available" },
-        { "id": "A4", "status": "available" }
+        { "id": "A1", "label": "1", "status": "occupied" },
+        { "id": "A2", "label": "2", "status": "available" }
+      ],
+      "waitlist": [
+        { "id": "WL-1001", "timestamp": "2025-11-01T22:00:00Z" }
       ]
     }
-  ]
+  ],
+  "waitlistPolicy": {
+    "maxPerTable": 3,
+    "maxGlobal": 30,
+    "estimatedWaitMinutes": 18,
+    "notes": "La lista se atiende por orden de llegada y requiere confirmacion dentro de 10 minutos."
+  }
 }
 ```
 
-> Los campos `rows` y `seats` pueden ampliarse segun el aforo necesario. Los estados permitidos para un asiento son `available`, `reserved` y `occupied`.
+Consideraciones clave del payload:
 
-Este endpoint se sirve desde la carpeta `public/api` del proyecto, por lo que Vite lo hace disponible automaticamente en modo `dev` y en builds de produccion.
+- Cada mesa define `capacity`, `minimumSpend` y los asientos individuales con su `status`. Los valores validos para `status` son `available`, `reserved`, `occupied` y `blocked`.
+- El campo `waitlist` refleja la cola actual por mesa; cada entrada contiene un identificador y el `timestamp` de registro. No se exponen datos personales.
+- `waitlistPolicy` documenta el limite de personas en espera por mesa y global, ademas de un estimado de minutos para rotacion. Esta seccion debe mantenerse sincronizada con las reglas operativas de la sede.
+- `coverCharge` permite calcular el total estimado por asiento seleccionado en el frontend.
+
+El endpoint vive en `public/api`, por lo que Vite lo expone automaticamente tanto en desarrollo como en builds de produccion.
