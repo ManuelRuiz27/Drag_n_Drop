@@ -4,9 +4,10 @@ import { DndContext } from '@dnd-kit/core';
 import { Canvas } from './components/Canvas';
 import { ToolPalette } from './components/ToolPalette';
 import { SeatSelectionPage } from './components/seat-selection/SeatSelectionPage';
+import { PaymentFlowPage } from './components/payments/PaymentFlowPage';
 import { CanvasStateProvider } from './context';
 
-type RouteKey = 'workspace' | 'seat-selection';
+type RouteKey = 'workspace' | 'seat-selection' | 'payments';
 
 function getRouteFromHash(): RouteKey {
   if (typeof window === 'undefined') {
@@ -17,6 +18,10 @@ function getRouteFromHash(): RouteKey {
 
   if (hash === 'seat-selection') {
     return 'seat-selection';
+  }
+
+  if (hash === 'payments') {
+    return 'payments';
   }
 
   return 'workspace';
@@ -45,6 +50,10 @@ function App() {
     return <SeatSelectionPage />;
   }
 
+  if (route === 'payments') {
+    return <PaymentFlowPage />;
+  }
+
   return (
     <CanvasStateProvider>
       <DndContext>
@@ -67,6 +76,12 @@ function App() {
                   className="rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#7dd3fc] transition hover:border-[#38bdf8] hover:bg-[#0f172a]"
                 >
                   Probar boletera movil
+                </a>
+                <a
+                  href="#payments"
+                  className="rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#a855f7] transition hover:border-[#a855f7] hover:bg-[#1c1032]"
+                >
+                  Flujos de pago
                 </a>
                 <span className="hidden rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium text-[#8a8a8a] sm:inline-flex">
                   Shift arrastra para multiseleccion
