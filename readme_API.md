@@ -19,8 +19,17 @@ Este documento resume los servicios que el front de flujos de pago espera consum
     },
     "metadata": {
       "orderId": "DX-92831",
-      "reference": "MP-198234"
+      "reference": "MP-198234",
+      "graduateId": "GRAD-28452"
     },
+    "items": [
+      {
+        "id": "item-1",
+        "title": "Elemento 1",
+        "quantity": 1,
+        "unitPrice": 1250
+      }
+    ],
     "redirectUrls": {
       "success": "https://drag.dev/pagos/success",
       "pending": "https://drag.dev/pagos/pending",
@@ -37,6 +46,10 @@ Este documento resume los servicios que el front de flujos de pago espera consum
     "expiresAt": "2024-05-30T20:15:00Z"
   }
   ```
+Campos clave:
+- `metadata.graduateId`: identifica al graduado asociado a la orden.
+- `items`: lista de conceptos y montos que se mostraran en Checkout Pro.
+- `redirectUrls`: URLs de retorno para los distintos estados del pago.
 
 ### 1.2 Consultar estado de pago
 - **Endpoint:** `GET /api/mercadopago/payments/:id`

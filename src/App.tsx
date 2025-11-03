@@ -5,9 +5,10 @@ import { Canvas } from './components/Canvas';
 import { ToolPalette } from './components/ToolPalette';
 import { SeatSelectionPage } from './components/seat-selection/SeatSelectionPage';
 import { PaymentFlowPage } from './components/payments/PaymentFlowPage';
+import { GraduateIdentificationPage } from './components/graduate/GraduateIdentificationPage';
 import { CanvasStateProvider } from './context';
 
-type RouteKey = 'workspace' | 'seat-selection' | 'payments';
+type RouteKey = 'workspace' | 'seat-selection' | 'payments' | 'graduate';
 
 function getRouteFromHash(): RouteKey {
   if (typeof window === 'undefined') {
@@ -22,6 +23,10 @@ function getRouteFromHash(): RouteKey {
 
   if (hash === 'payments') {
     return 'payments';
+  }
+
+  if (hash === 'graduate') {
+    return 'graduate';
   }
 
   return 'workspace';
@@ -54,6 +59,10 @@ function App() {
     return <PaymentFlowPage />;
   }
 
+  if (route === 'graduate') {
+    return <GraduateIdentificationPage />;
+  }
+
   return (
     <CanvasStateProvider>
       <DndContext>
@@ -82,6 +91,12 @@ function App() {
                   className="rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#a855f7] transition hover:border-[#a855f7] hover:bg-[#1c1032]"
                 >
                   Flujos de pago
+                </a>
+                <a
+                  href="#graduate"
+                  className="rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#5eead4] transition hover:border-[#5eead4] hover:bg-[#0f172a]"
+                >
+                  Graduado
                 </a>
                 <span className="hidden rounded-full border border-[#2b2b2b] bg-[#101010] px-4 py-2 text-xs font-medium text-[#8a8a8a] sm:inline-flex">
                   Shift arrastra para multiseleccion

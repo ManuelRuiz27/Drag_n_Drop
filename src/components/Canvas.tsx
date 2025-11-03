@@ -1353,7 +1353,7 @@ function CanvasElementNode({
       const nextHandleY = nextHalfHeight + rotatedOffsetY - handleHalf;
       event.target.position({ x: nextHandleX, y: nextHandleY });
     },
-    [cosRotation, element.id, element.type, element.x, element.y, handleHalf, height, isFreeform, onResize, sinRotation, width]
+    [cosRotation, element.id, element.x, element.y, handleHalf, height, isFreeform, onResize, sinRotation, width]
   );
 
   const handleRotationHandleDown = useCallback(

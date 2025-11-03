@@ -1,36 +1,11 @@
+import { useCallback, useMemo, useState, type PropsWithChildren } from 'react';
+
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type PropsWithChildren,
-} from 'react';
-
-export interface CanvasElement {
-  id: string;
-  type: string;
-  x: number;
-  y: number;
-  capacity?: number;
-  size: number;
-  width: number;
-  height: number;
-  rotation: number;
-  text?: string;
-  imageKey?: string;
-}
-
-interface CanvasState {
-  elements: CanvasElement[];
-  addElement: (element: Omit<CanvasElement, 'id'> & { id?: string }) => void;
-  removeElement: (id: string) => void;
-  updateElement: (id: string, updates: Partial<Omit<CanvasElement, 'id'>>) => void;
-}
-
-const CanvasStateContext = createContext<CanvasState | undefined>(undefined);
-
-export const DEFAULT_ELEMENT_SIZE = 96;
+  CanvasStateContext,
+  DEFAULT_ELEMENT_SIZE,
+  type CanvasElement,
+  type CanvasState,
+} from './canvasStateContext';
 
 export function CanvasStateProvider({ children }: PropsWithChildren): JSX.Element {
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -54,7 +29,7 @@ export function CanvasStateProvider({ children }: PropsWithChildren): JSX.Elemen
     setElements((prev) => prev.map((element) => (element.id === id ? { ...element, ...updates } : element)));
   }, []);
 
-  const value = useMemo(
+  const value = useMemo<CanvasState>(
     () => ({
       elements,
       addElement,
@@ -65,13 +40,5 @@ export function CanvasStateProvider({ children }: PropsWithChildren): JSX.Elemen
   );
 
   return <CanvasStateContext.Provider value={value}>{children}</CanvasStateContext.Provider>;
-}
-
-export function useCanvasState(): CanvasState {
-  const context = useContext(CanvasStateContext);
-  if (!context) {
-    throw new Error('useCanvasState must be used within a CanvasStateProvider');
-  }
-  return context;
 }
 

@@ -1,22 +1,7 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type PropsWithChildren,
-} from 'react';
+import { useCallback, useMemo, useState, type PropsWithChildren } from 'react';
 
+import { CanvasContext, type CanvasContextValue } from './canvasContextBase';
 import type { ElementConfig } from './types';
-
-interface CanvasContextValue {
-  elements: ElementConfig[];
-  addElement: (element: ElementConfig) => void;
-  moveElement: (id: string, x: number, y: number) => void;
-  updateElement: (id: string, updates: Partial<Omit<ElementConfig, 'id'>>) => void;
-}
-
-const CanvasContext = createContext<CanvasContextValue | undefined>(undefined);
 
 export function CanvasProvider({ children }: PropsWithChildren): JSX.Element {
   const [elements, setElements] = useState<ElementConfig[]>([]);
@@ -44,7 +29,7 @@ export function CanvasProvider({ children }: PropsWithChildren): JSX.Element {
     []
   );
 
-  const value = useMemo(
+  const value = useMemo<CanvasContextValue>(
     () => ({
       elements,
       addElement,
@@ -56,13 +41,3 @@ export function CanvasProvider({ children }: PropsWithChildren): JSX.Element {
 
   return <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>;
 }
-
-export function useCanvasContext(): CanvasContextValue {
-  const context = useContext(CanvasContext);
-  if (!context) {
-    throw new Error('useCanvasContext must be used within a CanvasProvider');
-  }
-  return context;
-}
-
-export { CanvasContext };

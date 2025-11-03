@@ -1,5 +1,6 @@
-import type { ElementConfig } from '../context/types';
 import type { Stage } from 'konva/lib/Stage';
+import type { ElementConfig } from '../context/types';
+import { apiRequest, type FetchFunction } from './apiClient';
 
 type StageLike = Stage | { current: Stage | null } | null | undefined;
 
@@ -7,7 +8,7 @@ export interface PersistDesignOptions {
   method?: 'POST' | 'PUT' | 'PATCH';
   headers?: Record<string, string>;
   token?: string;
-  fetchImpl?: typeof fetch;
+  fetchImpl?: FetchFunction;
 }
 
 function resolveStage(stageLike: StageLike): Stage | null {
@@ -43,11 +44,6 @@ export async function persistDesignToApi(
   }
 
   const { method = 'POST', headers = {}, token, fetchImpl } = options;
-  const fetchFn = fetchImpl ?? (typeof fetch !== 'undefined' ? fetch : undefined);
-
-  if (!fetchFn) {
-    throw new Error('Cannot persist design: fetch is not available in this environment.');
-  }
 
   const body = exportDesignToJSON(elements);
   const finalHeaders: Record<string, string> = {
@@ -59,28 +55,14 @@ export async function persistDesignToApi(
     finalHeaders.Authorization = finalHeaders.Authorization ?? `Bearer ${token}`;
   }
 
-  const response = await fetchFn(endpoint, {
+  return apiRequest<Response>({
+    path: endpoint,
     method,
     headers: finalHeaders,
     body,
+    parseJson: false,
+    fetchImpl,
   });
-
-  if (!response.ok) {
-    let errorMessage: string | null = null;
-    try {
-      errorMessage = await response.text();
-    } catch {
-      errorMessage = null;
-    }
-
-    const message = errorMessage?.trim()
-      ? ` - ${errorMessage.substring(0, 200)}`
-      : '';
-
-    throw new Error(`Failed to persist design (${response.status} ${response.statusText})${message}`);
-  }
-
-  return response;
 }
 
 export async function exportDesignToPDF(stageRef: StageLike): Promise<void> {
