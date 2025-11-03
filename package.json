@@ -1,16 +1,13 @@
 {
   "name": "drag-n-drop",
-  "homepage": "https://manuelruiz27.github.io/Drag_n_Drop",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "lint": "eslint . --ext ts,tsx"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
