@@ -1,0 +1,111 @@
+{
+  "venue": "Terraza Central",
+  "zone": "Zona Lounge Premium",
+  "currency": "MXN",
+  "coverCharge": 180,
+  "tables": [
+    {
+      "id": "T-01",
+      "name": "Mesa Aurora",
+      "capacity": 6,
+      "minimumSpend": 900,
+      "seats": [
+        { "id": "A1", "label": "1", "status": "occupied" },
+        { "id": "A2", "label": "2", "status": "occupied" },
+        { "id": "A3", "label": "3", "status": "reserved" },
+        { "id": "A4", "label": "4", "status": "available" },
+        { "id": "A5", "label": "5", "status": "available" },
+        { "id": "A6", "label": "6", "status": "blocked" }
+      ],
+      "waitlist": [
+        { "id": "WL-1001", "timestamp": "2025-11-01T22:00:00Z" }
+      ]
+    },
+    {
+      "id": "T-02",
+      "name": "Mesa Bronce",
+      "capacity": 4,
+      "minimumSpend": 600,
+      "seats": [
+        { "id": "B1", "label": "1", "status": "available" },
+        { "id": "B2", "label": "2", "status": "available" },
+        { "id": "B3", "label": "3", "status": "available" },
+        { "id": "B4", "label": "4", "status": "reserved" }
+      ],
+      "waitlist": []
+    },
+    {
+      "id": "T-03",
+      "name": "Mesa Cobalto",
+      "capacity": 8,
+      "minimumSpend": 1200,
+      "seats": [
+        { "id": "C1", "label": "1", "status": "occupied" },
+        { "id": "C2", "label": "2", "status": "occupied" },
+        { "id": "C3", "label": "3", "status": "reserved" },
+        { "id": "C4", "label": "4", "status": "occupied" },
+        { "id": "C5", "label": "5", "status": "reserved" },
+        { "id": "C6", "label": "6", "status": "occupied" },
+        { "id": "C7", "label": "7", "status": "occupied" },
+        { "id": "C8", "label": "8", "status": "occupied" }
+      ],
+      "waitlist": [
+        { "id": "WL-2001", "timestamp": "2025-11-01T21:48:00Z" },
+        { "id": "WL-2002", "timestamp": "2025-11-01T21:55:00Z" }
+      ]
+    },
+    {
+      "id": "T-04",
+      "name": "Mesa Destello",
+      "capacity": 5,
+      "minimumSpend": 750,
+      "seats": [
+        { "id": "D1", "label": "1", "status": "available" },
+        { "id": "D2", "label": "2", "status": "blocked" },
+        { "id": "D3", "label": "3", "status": "available" },
+        { "id": "D4", "label": "4", "status": "reserved" },
+        { "id": "D5", "label": "5", "status": "available" }
+      ],
+      "waitlist": []
+    },
+    {
+      "id": "T-05",
+      "name": "Mesa Esmeralda",
+      "capacity": 6,
+      "minimumSpend": 840,
+      "seats": [
+        { "id": "E1", "label": "1", "status": "available" },
+        { "id": "E2", "label": "2", "status": "available" },
+        { "id": "E3", "label": "3", "status": "available" },
+        { "id": "E4", "label": "4", "status": "available" },
+        { "id": "E5", "label": "5", "status": "available" },
+        { "id": "E6", "label": "6", "status": "available" }
+      ],
+      "waitlist": []
+    },
+    {
+      "id": "T-06",
+      "name": "Mesa Fenix",
+      "capacity": 7,
+      "minimumSpend": 980,
+      "seats": [
+        { "id": "F1", "label": "1", "status": "occupied" },
+        { "id": "F2", "label": "2", "status": "occupied" },
+        { "id": "F3", "label": "3", "status": "occupied" },
+        { "id": "F4", "label": "4", "status": "reserved" },
+        { "id": "F5", "label": "5", "status": "reserved" },
+        { "id": "F6", "label": "6", "status": "occupied" },
+        { "id": "F7", "label": "7", "status": "occupied" }
+      ],
+      "waitlist": [
+        { "id": "WL-3001", "timestamp": "2025-11-01T21:30:00Z" }
+      ]
+    }
+  ],
+  "waitlistPolicy": {
+    "maxPerTable": 3,
+    "maxGlobal": 30,
+    "estimatedWaitMinutes": 18,
+    "notes": "La lista se atiende por orden de llegada y requiere confirmacion dentro de 10 minutos."
+  }
+}
