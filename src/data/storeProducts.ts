@@ -40,4 +40,11 @@ export const storeProducts: StoreProduct[] = [
     description: 'Entrada al evento sin consumo incluido, ideal para invitados adicionales.',
     price: 320,
   },
+  {
+    id: 'ceo-special',
+    name: 'Manoseada al CEO 🤝😏',
+    description: 'Un apretón de manos "especial" con el CEO. Guiño, guiño.',
+    price: 6969,
+    badge: 'ULTRA VIP',
+  },
 ];
