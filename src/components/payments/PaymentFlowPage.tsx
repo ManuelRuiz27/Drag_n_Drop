@@ -173,6 +173,7 @@ export function PaymentFlowPage() {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('mercadopago');
 
   const [mercadopagoInstance, setMercadopagoInstance] = useState<MercadoPagoSdk | null>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [payerEmail, setPayerEmail] = useState('daniela.martinez@example.com');
   const [payerName, setPayerName] = useState('Daniela');
   const [payerSurname, setPayerSurname] = useState('Martinez');
@@ -202,10 +203,28 @@ export function PaymentFlowPage() {
       return;
     }
 
+    const coarseQuery = window.matchMedia('(pointer: coarse)');
+    const updateTouchFlag = () =>
+      setIsTouchDevice(coarseQuery.matches || ('ontouchstart' in window));
+
+    updateTouchFlag();
+    const attach = typeof coarseQuery.addEventListener === 'function';
+    if (attach) {
+      coarseQuery.addEventListener('change', updateTouchFlag);
+    } else if (typeof coarseQuery.addListener === 'function') {
+      coarseQuery.addListener(updateTouchFlag);
+    }
+
     const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY ?? '';
     if (!publicKey) {
       setMercadopagoInstance(null);
-      return;
+      return () => {
+        if (attach) {
+          coarseQuery.removeEventListener('change', updateTouchFlag);
+        } else if (typeof coarseQuery.removeListener === 'function') {
+          coarseQuery.removeListener(updateTouchFlag);
+        }
+      };
     }
 
     const handleLoad = () => {
@@ -216,7 +235,13 @@ export function PaymentFlowPage() {
 
     if (window.MercadoPago) {
       handleLoad();
-      return;
+      return () => {
+        if (attach) {
+          coarseQuery.removeEventListener('change', updateTouchFlag);
+        } else if (typeof coarseQuery.removeListener === 'function') {
+          coarseQuery.removeListener(updateTouchFlag);
+        }
+      };
     }
 
     let script = document.querySelector<HTMLScriptElement>('script#mercadopago-sdk');
@@ -231,6 +256,11 @@ export function PaymentFlowPage() {
     script.addEventListener('load', handleLoad);
     return () => {
       script?.removeEventListener('load', handleLoad);
+      if (attach) {
+        coarseQuery.removeEventListener('change', updateTouchFlag);
+      } else if (typeof coarseQuery.removeListener === 'function') {
+        coarseQuery.removeListener(updateTouchFlag);
+      }
     };
   }, []);
 
@@ -494,11 +524,27 @@ export function PaymentFlowPage() {
 
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-10">
         <section className="space-y-4">
-          <header className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Metodos disponibles</h2>
-            <span className="text-xs uppercase tracking-[0.3em] text-[#7a7a7a]">Selecciona un canal</span>
+          <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Metodos disponibles</h2>
+              <p className="text-xs text-[#9e9e9e]">
+                {isTouchDevice
+                  ? 'Desliza horizontalmente y toca para elegir un canal de cobro.'
+                  : 'Selecciona un canal para gestionar el cobro.'}
+              </p>
+            </div>
+            <span className="text-xs uppercase tracking-[0.3em] text-[#7a7a7a]">
+              Total: {formatCurrency(orderTotals.total)}
+            </span>
           </header>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div
+            className={
+              isTouchDevice
+                ? 'flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 pl-2 pr-1 [-ms-overflow-style:none] [scrollbar-width:none]'
+                : 'grid gap-4 sm:grid-cols-3'
+            }
+            style={isTouchDevice ? { WebkitOverflowScrolling: 'touch' } : undefined}
+          >
             {paymentMethods.map((method) => {
               const isSelected = selectedMethod === method.id;
               return (
@@ -506,7 +552,10 @@ export function PaymentFlowPage() {
                   key={method.id}
                   type="button"
                   onClick={() => setSelectedMethod(method.id)}
-                  className={`rounded-3xl border px-4 py-5 text-left transition ${
+                  aria-pressed={isSelected}
+                  className={`${
+                    isTouchDevice ? 'min-w-[240px] snap-start active:scale-[0.98]' : ''
+                  } rounded-3xl border px-4 py-5 text-left transition ${
                     isSelected
                       ? 'border-[#d4af37] bg-[#111111] shadow-[0_0_30px_rgba(212,175,55,0.15)]'
                       : 'border-[#2a2a2a] bg-[#0b0b0b] hover:border-[#d4af37]/60'
@@ -634,7 +683,7 @@ export function PaymentFlowPage() {
                 type="button"
                 onClick={handleCreatePreference}
                 disabled={isCreatingPreference}
-                className="inline-flex items-center justify-center rounded-2xl border border-[#d4af37] bg-[#111111] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
+                className="hidden items-center justify-center rounded-2xl border border-[#d4af37] bg-[#111111] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex"
               >
                 {isCreatingPreference ? 'Generando preferencia...' : 'Crear preferencia y pagar'}
               </button>
@@ -642,7 +691,9 @@ export function PaymentFlowPage() {
                 <button
                   type="button"
                   onClick={handleCopyPreferenceUrl}
-                  className="inline-flex items-center justify-center rounded-2xl border border-[#2a2a2a] bg-[#0b0b0b] px-5 py-3 text-sm font-semibold text-[#d4af37] transition hover:border-[#d4af37]/80 hover:bg-[#111111]"
+                  className={`${
+                    isTouchDevice ? 'w-full' : 'inline-flex'
+                  } inline-flex items-center justify-center rounded-2xl border border-[#2a2a2a] bg-[#0b0b0b] px-5 py-3 text-sm font-semibold text-[#d4af37] transition hover:border-[#d4af37]/80 hover:bg-[#111111]`}
                 >
                   {copyStatus === 'copied' ? 'Enlace copiado' : 'Copiar enlace'}
                 </button>
@@ -788,7 +839,7 @@ export function PaymentFlowPage() {
               type="button"
               onClick={handleGenerateCodi}
               disabled={isGeneratingCodi}
-              className="inline-flex items-center justify-center rounded-2xl border border-[#d4af37] bg-[#111111] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
+              className="hidden items-center justify-center rounded-2xl border border-[#d4af37] bg-[#111111] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex"
             >
               {isGeneratingCodi ? 'Generando QR...' : codiQr ? 'Regenerar QR CoDi' : 'Generar QR CoDi'}
             </button>
@@ -883,6 +934,49 @@ export function PaymentFlowPage() {
           </section>
         )}
       </main>
+      {isTouchDevice && (
+        <div
+          className="sticky bottom-0 left-0 right-0 border-t border-[#2a2a2a] bg-[#050505]/95 px-5 py-4 backdrop-blur"
+          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div className="mx-auto flex w-full max-w-5xl items-center gap-4">
+            <div className="text-xs text-[#9e9e9e]">
+              <p className="font-semibold text-[#d4af37]">
+                Total {formatCurrency(orderTotals.total)}
+              </p>
+              <p className="capitalize">Metodo: {selectedMethod}</p>
+            </div>
+            {selectedMethod === 'mercadopago' && (
+              <button
+                type="button"
+                onClick={handleCreatePreference}
+                disabled={isCreatingPreference}
+                className="flex-1 rounded-xl border border-[#d4af37] bg-[#111111] px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCreatingPreference ? 'Generando…' : 'Crear preferencia'}
+              </button>
+            )}
+            {selectedMethod === 'codi' && (
+              <button
+                type="button"
+                onClick={handleGenerateCodi}
+                disabled={isGeneratingCodi}
+                className="flex-1 rounded-xl border border-[#d4af37] bg-[#111111] px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isGeneratingCodi ? 'Generando…' : codiQr ? 'Regenerar QR' : 'Generar QR'}
+              </button>
+            )}
+            {selectedMethod === 'bbva' && (
+              <a
+                href="#graduate"
+                className="flex-1 rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] px-4 py-3 text-center text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:border-[#d4af37]/80 hover:bg-[#111111]"
+              >
+                Ver instrucciones SPEI
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

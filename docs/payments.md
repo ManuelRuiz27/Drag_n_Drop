@@ -22,4 +22,5 @@ Este resumen describe los flujos expuestos en `PaymentFlowPage.tsx` para cerrar 
 1. Define en el backend middleware que anexe claves de idempotencia para los POST de preferencias y QR.
 2. Expone webhooks (`/api/webhooks/mercadopago`, `/api/webhooks/codi`) para actualizar el estado sin depender solo del polling.
 3. Usa el mismo `orderId` y `reference` en todos los metodos para poder conciliarlos desde el panel administrativo.
-4. Antes de cada despliegue valida `npm run lint` y `npm run build` para evitar errores en la integracion continua.
+4. En dispositivos touch la vista muestra CTAs fijados en la parte inferior; verifica que la navegación no quede cubierta por barras del sistema (usa `safe-area` si tu hosting aplica).
+5. Antes de cada despliegue valida `npm run lint` y `npm run build` para evitar errores en la integracion continua.

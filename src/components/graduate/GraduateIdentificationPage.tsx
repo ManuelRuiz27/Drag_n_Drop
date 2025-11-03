@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { calculateOrderTotals, graduateOrder } from '../../data/graduateOrder';
 import { storeProducts } from '../../data/storeProducts';
@@ -20,6 +20,33 @@ function formatDate(value: string) {
 export function GraduateIdentificationPage() {
   const totals = useMemo(() => calculateOrderTotals(graduateOrder), []);
   const [cart, setCart] = useState<Record<string, number>>({});
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const coarseQuery = window.matchMedia('(pointer: coarse)');
+    const updateTouchFlag = () =>
+      setIsTouchDevice(coarseQuery.matches || ('ontouchstart' in window));
+
+    updateTouchFlag();
+    const attach = typeof coarseQuery.addEventListener === 'function';
+    if (attach) {
+      coarseQuery.addEventListener('change', updateTouchFlag);
+    } else if (typeof coarseQuery.addListener === 'function') {
+      coarseQuery.addListener(updateTouchFlag);
+    }
+
+    return () => {
+      if (attach) {
+        coarseQuery.removeEventListener('change', updateTouchFlag);
+      } else if (typeof coarseQuery.removeListener === 'function') {
+        coarseQuery.removeListener(updateTouchFlag);
+      }
+    };
+  }, []);
 
   const cartItems = useMemo(
     () =>
@@ -107,20 +134,33 @@ export function GraduateIdentificationPage() {
           <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-white">Tienda de extras</h3>
-              <p className="text-xs text-[#9e9e9e]">Agrega servicios complementarios para personalizar la experiencia.</p>
+              <p className="text-xs text-[#9e9e9e]">
+                {isTouchDevice
+                  ? 'Desliza las tarjetas y toca “Agregar” para personalizar tu experiencia.'
+                  : 'Agrega servicios complementarios para personalizar la experiencia.'}
+              </p>
             </div>
             <span className="rounded-full border border-[#2a2a2a] bg-[#101010] px-3 py-1 text-xs text-[#b8b8b8]">
               Productos disponibles: {storeProducts.length}
             </span>
           </header>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div
+            className={
+              isTouchDevice
+                ? 'flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 pl-1 pr-3 [-ms-overflow-style:none] [scrollbar-width:none]'
+                : 'grid grid-cols-1 gap-4'
+            }
+            style={isTouchDevice ? { WebkitOverflowScrolling: 'touch' } : undefined}
+          >
             {storeProducts.map((product) => {
               const quantity = cart[product.id] ?? 0;
               return (
                 <article
                   key={product.id}
-                  className="rounded-2xl border border-[#1f1f1f] bg-[#101010] p-5 shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
+                  className={`${
+                    isTouchDevice ? 'min-w-[260px] snap-start' : ''
+                  } rounded-2xl border border-[#1f1f1f] bg-[#101010] p-5 shadow-[0_12px_30px_rgba(0,0,0,0.35)]`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-2">
@@ -136,12 +176,12 @@ export function GraduateIdentificationPage() {
 
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-lg font-semibold text-[#d4af37]">{formatCurrency(product.price)}</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {quantity > 0 && (
                         <button
                           type="button"
                           onClick={() => removeProductFromCart(product.id)}
-                          className="rounded-xl border border-[#2a2a2a] bg-[#141414] px-3 py-2 text-xs font-semibold text-[#d6d6d6] transition hover:border-[#d4af37]"
+                          className="rounded-xl border border-[#2a2a2a] bg-[#141414] px-4 py-2 text-xs font-semibold text-[#d6d6d6] transition hover:border-[#d4af37] active:scale-95"
                         >
                           Quitar
                         </button>
@@ -149,7 +189,7 @@ export function GraduateIdentificationPage() {
                       <button
                         type="button"
                         onClick={() => addProductToCart(product.id)}
-                        className="rounded-xl border border-[#d4af37] bg-[#141414] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505]"
+                        className="rounded-xl border border-[#d4af37] bg-[#141414] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] active:scale-95"
                       >
                         Agregar
                       </button>
@@ -169,7 +209,7 @@ export function GraduateIdentificationPage() {
         </section>
 
         <section className="space-y-4 rounded-3xl border border-[#2a2a2a] bg-[#090909] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
-          <header className="flex items-start justify-between gap-4">
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-white">Carrito</h3>
               <p className="text-xs text-[#9e9e9e]">Controla los extras agregados antes de continuar al pago.</p>
@@ -177,7 +217,9 @@ export function GraduateIdentificationPage() {
             <button
               type="button"
               onClick={clearCart}
-              className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold text-[#bdbdbd] transition hover:border-[#d4af37] hover:text-[#d4af37]"
+              className={`rounded-full border border-[#2a2a2a] px-4 py-2 text-xs font-semibold text-[#bdbdbd] transition hover:border-[#d4af37] hover:text-[#d4af37] active:scale-95 ${
+                isTouchDevice ? 'w-full sm:w-auto' : ''
+              }`}
               disabled={cartItems.length === 0}
             >
               Vaciar
@@ -203,14 +245,14 @@ export function GraduateIdentificationPage() {
                     <button
                       type="button"
                       onClick={() => removeProductFromCart(product.id)}
-                      className="rounded-full border border-[#2a2a2a] px-3 py-1 text-xs text-[#bdbdbd] transition hover:border-[#d4af37] hover:text-[#d4af37]"
+                      className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs text-[#bdbdbd] transition hover:border-[#d4af37] hover:text-[#d4af37] active:scale-95"
                     >
                       -
                     </button>
                     <button
                       type="button"
                       onClick={() => addProductToCart(product.id)}
-                      className="rounded-full border border-[#2a2a2a] px-3 py-1 text-xs text-[#bdbdbd] transition hover:border-[#d4af37] hover:text-[#d4af37]"
+                      className="rounded-full border border-[#2a2a2a] px-4 py-2 text-xs text-[#bdbdbd] transition hover:border-[#d4af37] hover:text-[#d4af37] active:scale-95"
                     >
                       +
                     </button>
@@ -274,6 +316,25 @@ export function GraduateIdentificationPage() {
           </a>
         </section>
       </main>
+      {isTouchDevice && (
+        <div
+          className="sticky bottom-0 left-0 right-0 border-t border-[#2a2a2a] bg-[#050505]/95 px-5 py-4 backdrop-blur"
+          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div className="mx-auto flex w-full max-w-5xl items-center gap-4">
+            <div className="text-xs text-[#9e9e9e]">
+              <p className="font-semibold text-[#d4af37]">Total {formatCurrency(totalDue)}</p>
+              <p>Extras seleccionados: {cartItems.length}</p>
+            </div>
+            <a
+              href="#payments"
+              className="flex-1 rounded-xl border border-[#d4af37] bg-[#111111] px-4 py-3 text-center text-sm font-semibold uppercase tracking-wide text-[#d4af37] transition hover:bg-[#d4af37] hover:text-[#050505] active:scale-95"
+            >
+              Ir al centro de pagos
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

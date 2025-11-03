@@ -63,18 +63,39 @@ Consideraciones clave del payload:
 - `coverCharge` permite calcular el total estimado por asiento seleccionado en el frontend.
 
 El endpoint vive en `public/api`, por lo que Vite lo expone automaticamente tanto en desarrollo como en builds de produccion.
-## Integracion Mercado Pago Checkout Pro
 
-El flujo de pago expuesto en `/#graduate` y `/#payments` utiliza Mercado Pago Checkout Pro.
+## Centro de pagos
 
-1. **Backend**: implementa el endpoint `POST /api/mercadopago/preferences` tal como se describe en `readme_API.md`. Debe crear la preferencia con el SDK oficial y devolver al menos `initPoint`, `sandboxInitPoint` y `preferenceId`.
-2. **Webhooks**: registra `POST /api/webhooks/mercadopago` para recibir `payment.updated` y conciliar estados.
+Los flujos `/#graduate` y `/#payments` consumen endpoints externos documentados en `docs/backend-api.md`. Asegurate de revisar ese archivo para conocer los contratos, modelos de datos y webhooks requeridos.
+
+### Integracion Mercado Pago Checkout Pro
+
+1. **Backend**: implementa `POST /api/mercadopago/preferences` segun la especificacion y devuelve al menos `initPoint`, `sandboxInitPoint`, `preferenceId` y `expiresAt`.
+2. **Webhooks**: registra `POST /api/webhooks/mercadopago` para recibir `payment.updated` y `merchant_order.updated`.
 3. **Variables de entorno**:
-   - Backend: `MP_ACCESS_TOKEN` (TEST-* o LIVE-*), `MP_INTEGRATOR_ID` y la URL publica para webhooks.
-   - Frontend: agrega en `./.env.local` la ruta base de tu API: `VITE_API_BASE_URL=http://localhost:3000`. Si usas el SDK JS de Mercado Pago puedes añadir `VITE_MERCADOPAGO_PUBLIC_KEY=TEST-...`.
-4. **Redirecciones**: el cliente genera callbacks basados en `window.location.origin`, ajusta en tu backend si necesitas URLs diferentes.
+   - Backend: `MP_ACCESS_TOKEN`, `MP_INTEGRATOR_ID`, URLs de webhooks publicos.
+   - Frontend: define `VITE_API_BASE_URL` apuntando a tu API (por defecto `http://localhost:3000`) y `VITE_MERCADOPAGO_PUBLIC_KEY` para inicializar el SDK JS.
+4. **Redirecciones**: el cliente arma `redirectUrls` usando `window.location.origin`; ajusta en tu backend si necesitas dominios distintos.
 
-El boton "Crear preferencia y pagar" crea la preferencia y abre el `initPoint` en una nueva ventana. Si el backend responde con error, el mensaje se muestra debajo del boton.
+El boton "Crear preferencia y pagar" llama al endpoint, abre el checkout embebido (o redirige al `initPoint`) y deja registrado el `preferenceId` para consultar el estado del pago.
+
+### Mock API local
+
+Para desarrollo puedes emular la API de pagos ejecutando:
+
+```bash
+npm run mock:api
+```
+
+El mock escucha en `http://localhost:3000` e implementa:
+
+- `POST /api/mercadopago/preferences`
+- `GET /api/mercadopago/payments/:id`
+- `POST /api/codi/qr`
+- `GET /api/codi/charges/:codiId`
+- `POST /api/spei/references`
+
+Consulta `docs/backend-api.md` para ver la estructura exacta de los payloads y las responsabilidades del backend real.
 
 ## Extras y carrito de graduado
 
